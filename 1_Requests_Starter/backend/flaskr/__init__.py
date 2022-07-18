@@ -70,24 +70,22 @@ def create_app(test_config=None):
     #         and should follow API design principles regarding method and route.
     #         Response body keys: 'success'
     # TEST: When completed, you will be able to click on stars to update a book's rating and it will persist after refresh
-    @app.route('/books/<int:book_id>', methods=['PATCH'])
+    @app.route("/books/<int:book_id>", methods=["PATCH"])
     def update_book(book_id):
+
         body = request.get_json()
 
         try:
-            book = Book.query.filter(Book.id == book_id).one_or_more()
+            book = Book.query.filter(Book.id == book_id).one_or_none()
             if book is None:
                 abort(404)
 
-            if 'rating' in body:
-                book.rating = int(body.get('rating'))
+            if "rating" in body:
+                book.rating = int(body.get("rating"))
 
             book.update()
 
-            return jsonify({
-                'success': True,
-                'id': book.id
-            })
+            return jsonify({"success": True, "id": book.id})
 
         except:
             abort(400)
@@ -101,10 +99,61 @@ def create_app(test_config=None):
     #        Response body keys: 'success', 'books' and 'total_books'
 
     # TEST: When completed, you will be able to delete a single book by clicking on the trashcan.
+    @app.route('/books/<int:book_id>', methods=['DELETE'])
+    def delete_book(book_id):
+        try:
+            book = Book.query.filter(Book.id == book_id).one_or_none()
+
+            if book is None:
+                abort(404)
+
+            book.delete()
+            selection = Book.query.order_by(Book.id).all()
+            current_books = paginate_books(request, selection)
+
+            return jsonify({
+                'success': True,
+                'deleted': book_id,
+                'books': current_books,
+                'total_books': len(Book.query.all())
+            })
+
+        except:
+            abort(422)
+
+
 
     # @TODO: Write a route that create a new book.
     #        Response body keys: 'success', 'created'(id of created book), 'books' and 'total_books'
     # TEST: When completed, you will be able to a new book using the form. Try doing so from the last page of books.
     #       Your new book should show up immediately after you submit it at the end of the page.
+    @app.route("/books", methods=["POST"])
+    def create_book():
+        body = request.get_json()
+
+        new_title = body.get("title", None)
+        new_author = body.get("author", None)
+        new_rating = body.get("rating", None)
+
+        try:
+            book = Book(title=new_title, author=new_author, rating=new_rating)
+            book.insert()
+
+            selection = Book.query.order_by(Book.id).all()
+            current_books = paginate_books(request, selection)
+
+            return jsonify(
+                {
+                    "success": True,
+                    "created": book.id,
+                    "books": current_books,
+                    "total_books": len(Book.query.all()),
+                }
+            )
+
+        except:
+            abort(422)
+
+
 
     return app
