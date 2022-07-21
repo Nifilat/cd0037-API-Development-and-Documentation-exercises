@@ -146,4 +146,7 @@ def create_app(test_config=None):
     def bad_request(error):
         return jsonify({"success": False, "error": 400, "message": "bad request"}), 400
 
+
+    
+
     return app
